@@ -1,4 +1,5 @@
 import random
+import copy
 
 
 class Graph:
@@ -86,10 +87,7 @@ graph = Graph(vertex_number)
 for i in lines[1:]:
     vertices = i.split()
     graph.add_edge(int(vertices[0]), int(vertices[1]))
-graph2 = Graph(vertex_number)
-for i in lines[1:]:
-    vertices = i.split()
-    graph2.add_edge(int(vertices[0]), int(vertices[1]))
+graph2 = copy.deepcopy(graph)
 print(graph.greedy_coloring())
 #print(graph)
 print(graph2.optimized_greedy_coloring())
