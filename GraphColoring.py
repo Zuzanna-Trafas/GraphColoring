@@ -188,13 +188,28 @@ def genetic(graphs):
     return graphs
 
 
-graph_generator(0.7, 80, "a.txt")
-graphs = generate_population(20, "queen6")
-print(max(graphs[0].colors))
+# graph_generator(0.7, 80, "a.txt")
+graphs = generate_population(50, "queen6")
+
+print("Minimalna liczba kolorów:")
+
+print("zachlanny: " + str(max(graphs[0].colors)))
+
+f = open("queen6", "r")   # opening the file
+lines = f.readlines()   # storing content in lines variable
+vertex_number = int(lines[0])  # first line is vertex number
+graph = Graph(vertex_number)
+for i in lines[1:]:
+    vertices = i.split()
+    graph.add_edge(int(vertices[0]), int(vertices[1]))
+
+print("zoptymalizowany zachlanny: " + str(graph.optimized_greedy_coloring()))
+
 for i in range(1000):
     graphs = genetic(graphs)
 max_colors = {}
 for i in range(len(graphs)):
     max_colors[graphs[i]] = max(graphs[i].colors)
 v = list(max_colors.values())
-print(min(v))
+
+print("genetyczny: " + str(min(v)))
