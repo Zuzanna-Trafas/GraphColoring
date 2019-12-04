@@ -28,7 +28,7 @@ class Graph:
                     error_number += 1
         return error_number
 
-    def mutation(self):
+    def mutation1(self):
         for vertex in range(len(self.matrix)):
             adjacent_colors = []
             for v in range(len(self.matrix)):
@@ -43,6 +43,12 @@ class Graph:
                         if i not in adjacent_colors:
                             self.color(vertex, i)
                             break
+
+    def mutation2(self):
+        for vertex in range(len(self.matrix)):
+            for other_vertex in range(vertex+1, len(self.matrix)):
+                if self.matrix[vertex][other_vertex] == 1 and self.colors[vertex] == self.colors[other_vertex]:
+                    self.color(vertex, max(self.colors)+1)
 
     def add_edge(self, vertex1, vertex2):
         self.matrix[vertex1-1][vertex2-1] = 1
@@ -87,6 +93,81 @@ class Graph:
         return maximum
 
 
+class Population:
+    def __init__(self, graph_number, file):
+        self.graphs = []
+        self.graph_number = graph_number
+        self.color_number = []
+        f = open(file, "r")  # opening the file
+        lines = f.readlines()  # storing content in lines variable
+        vertex_number = int(lines[0])
+        for _ in range(graph_number):
+            g = Graph(vertex_number)
+            for i in lines[1:]:
+                vertices = i.split()
+                g.add_edge(int(vertices[0]), int(vertices[1]))
+            self.graphs.append(g)
+        for i in range(len(self.graphs)):
+            c = self.graphs[i].greedy_coloring(i)
+            self.color_number[i] = c
+        f.close()
+
+    def parent_selection1(self):
+        parents = []
+        for _ in range(2):
+            a = random.randint(1, self.graph_number - 1)
+            b = random.randint(1, self.graph_number - 1)
+            while a == b:
+                b = random.randint(1, self.graph_number - 1)
+            if color_number[a] > color_number[b]:
+                parent = graphs[b]
+            else:
+                parent = graphs[a]
+            parents.append(parent)
+        return parents
+
+    def parent_selection2(self):
+        i = 0
+        j = 0
+        parent1, parent2 = color_number[0], color_number[0]
+        for n in range(1, self.graph_number):
+            color = self.color_number[n]
+            if color <= parent1:
+                parent1, parent2 = color, parent1
+                i, j = n, i
+            elif color < parent2:
+                parent2 = color
+                j = n
+        return self.graphs[i], self.graphs[j]
+
+    def crossover(self, parents):
+        parent1 = parents[0]
+        parent2 = parents[1]
+        a = random.randint(1, len(parent1.matrix))
+        child = copy.deepcopy(parent1)
+        child.colors[a:] = parent2.colors[a:]
+        return child
+
+
+    def genetic(self):
+        seed = random.randint(0, 1)
+        if seed == 0:
+            while graphs.number != 50:
+                parents = parent_selection1(graphs)
+                child = crossover(parents)
+                child.mutation()
+                if child != graphs[-1]:
+                    graphs.append(child)
+        else:
+            cut_population(graphs)
+            while len(graphs) != 50:
+                parents = parent_selection2(graphs)
+                child = crossover(parents)
+                child.mutation2()
+                if child != graphs[-1]:
+                    graphs.append(child)
+
+
 def graph_generator(density, vertex_number, file_name):
     edges = []
     edge_number = vertex_number
@@ -110,106 +191,25 @@ def graph_generator(density, vertex_number, file_name):
     f.close()
 
 
-def crossover(parent1, parent2):
-    a = random.randint(1, len(parent1.matrix))
-    child = copy.deepcopy(parent1)
-    child.colors[a:] = parent2.colors[a:]
-    return child
-
-
-def parent_selection1(graphs):
-    parents = []
-    for _ in range(2):
-        a = random.randint(1, len(graphs)-1)
-        b = random.randint(1, len(graphs)-1)
-        while a == b:
-            b = random.randint(1, len(graphs)-1)
-        max_a = max(graphs[a].colors)
-        max_b = max(graphs[b].colors)
-        if max_a > max_b:
-            parent = graphs[b]
-        else:
-            parent = graphs[a]
-        parents.append(parent)
-    return parents
-
-
-def parent_selection2(graphs):
-    parents = []
-    max_colors = {}
-    for i in range(len(graphs)):
-        max_colors[graphs[i]] = max(graphs[i].colors)
-    v = list(max_colors.values())
-    k = list(max_colors.keys())
-    parents.append(k[v.index(min(v))])
-    del max_colors[k[v.index(min(v))]]
-    v = list(max_colors.values())
-    k = list(max_colors.keys())
-    parents.append(k[v.index(min(v))])
-    return parents
-
-
-def generate_population(graph_number, file):
-    graphs = []
-    f = open(file, "r")  # opening the file
-    lines = f.readlines()  # storing content in lines variable
-    vertex_number = int(lines[0])
-    for _ in range(graph_number):
-        g = Graph(vertex_number)
-        for i in lines[1:]:
-            vertices = i.split()
-            g.add_edge(int(vertices[0]), int(vertices[1]))
-        graphs.append(g)
-
-    for i in range(len(graphs)):
-        graphs[i].greedy_coloring(i)
-
-    f.close()
-    return graphs
-
-
 def genetic(graphs):
-    a = random.randint(1, 2)
-    if a == 1:
-        parents = parent_selection1(graphs)
+    seed = random.randint(0,1)
+    if seed == 0:
+        cut_population(graphs)
+        while len(graphs) != 50:
+            parents = parent_selection1(graphs)
+            child = crossover(parents)
+            child.mutation()
+            if child != graphs[-1]:
+                graphs.append(child)
     else:
-        parents = parent_selection2(graphs)
-    child = crossover(parents[0], parents[1])
-    child.mutation()
-    if child != graphs[-1]:
-        graphs.append(child)
-        maximum = 0
-        max_index = 0
-        for i in range(len(graphs)):
-            if max(graphs[i].colors) > maximum:
-                maximum = max(graphs[i].colors)
-                max_index = i
-        graphs.pop(max_index)
+        cut_population(graphs)
+        while len(graphs) != 50:
+            parents = parent_selection2(graphs)
+            child = crossover(parents)
+            child.mutation2()
+            if child != graphs[-1]:
+                graphs.append(child)
     return graphs
 
 
-# graph_generator(0.7, 80, "a.txt")
-graphs = generate_population(50, "queen6")
 
-print("Minimalna liczba kolorów:")
-
-print("zachlanny: " + str(max(graphs[0].colors)))
-
-f = open("queen6", "r")   # opening the file
-lines = f.readlines()   # storing content in lines variable
-vertex_number = int(lines[0])  # first line is vertex number
-graph = Graph(vertex_number)
-for i in lines[1:]:
-    vertices = i.split()
-    graph.add_edge(int(vertices[0]), int(vertices[1]))
-
-print("zoptymalizowany zachlanny: " + str(graph.optimized_greedy_coloring()))
-
-for i in range(1000):
-    graphs = genetic(graphs)
-max_colors = {}
-for i in range(len(graphs)):
-    max_colors[graphs[i]] = max(graphs[i].colors)
-v = list(max_colors.values())
-
-print("genetyczny: " + str(min(v)))
