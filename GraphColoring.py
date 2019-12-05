@@ -150,17 +150,18 @@ class Population:
 
     def genetic(self):
         added_number = 0
+        colors = copy.deepcopy(self.color_number)
         while added_number < self.graph_number//2:
             seed = random.randint(0, 1)
             if seed == 0:
                 parents = self.parent_selection1()
                 child = self.crossover(parents)
-                child.mutation1()
+                child.mutation2()
 
             else:
                 parents = self.parent_selection2()
                 child = self.crossover(parents)
-                child.mutation2()
+                child.mutation1()
 
             already_exist = False
             for i in range(self.graph_number):
@@ -168,7 +169,8 @@ class Population:
                     already_exist = True
 
             if already_exist is False:
-                idx = self.color_number.index(max(self.color_number))
+                idx = colors.index(max(colors))
+                colors[idx] = 0
                 self.graphs[idx] = child
                 self.color_number[idx] = len(set(child.colors))
                 added_number += 1
@@ -197,10 +199,11 @@ def graph_generator(density, vertex_number, file_name):
     f.close()
 
 
-graphs = Population(20, "queen6")
+graphs = Population(50, "queen6")
 print(graphs.color_number[0])
 for i in range(1000):
     graphs.genetic()
     print(graphs.color_number)
+    print(min(graphs.color_number))
 print(min(graphs.color_number))
 
