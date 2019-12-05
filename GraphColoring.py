@@ -97,7 +97,7 @@ class Population:
     def __init__(self, graph_number, file):
         self.graphs = []
         self.graph_number = graph_number
-        self.color_number = []
+        self.color_number = [0 for _ in range(self.graph_number)]
         f = open(file, "r")  # opening the file
         lines = f.readlines()  # storing content in lines variable
         vertex_number = int(lines[0])
@@ -119,17 +119,17 @@ class Population:
             b = random.randint(1, self.graph_number - 1)
             while a == b:
                 b = random.randint(1, self.graph_number - 1)
-            if color_number[a] > color_number[b]:
-                parent = graphs[b]
+            if self.color_number[a] > self.color_number[b]:
+                parent = self.graphs[b]
             else:
-                parent = graphs[a]
+                parent = self.graphs[a]
             parents.append(parent)
         return parents
 
     def parent_selection2(self):
         i = 0
         j = 0
-        parent1, parent2 = color_number[0], color_number[0]
+        parent1, parent2 = self.color_number[0], self.color_number[0]
         for n in range(1, self.graph_number):
             color = self.color_number[n]
             if color <= parent1:
@@ -148,24 +148,30 @@ class Population:
         child.colors[a:] = parent2.colors[a:]
         return child
 
-
     def genetic(self):
-        seed = random.randint(0, 1)
-        if seed == 0:
-            while graphs.number != 50:
-                parents = parent_selection1(graphs)
-                child = crossover(parents)
-                child.mutation()
-                if child != graphs[-1]:
-                    graphs.append(child)
-        else:
-            cut_population(graphs)
-            while len(graphs) != 50:
-                parents = parent_selection2(graphs)
-                child = crossover(parents)
+        added_number = 0
+        while added_number < self.graph_number//2:
+            seed = random.randint(0, 1)
+            if seed == 0:
+                parents = self.parent_selection1()
+                child = self.crossover(parents)
+                child.mutation1()
+
+            else:
+                parents = self.parent_selection2()
+                child = self.crossover(parents)
                 child.mutation2()
-                if child != graphs[-1]:
-                    graphs.append(child)
+
+            already_exist = False
+            for i in range(self.graph_number):
+                if child == self.graphs[i]:
+                    already_exist = True
+
+            if already_exist is False:
+                idx = self.color_number.index(max(self.color_number))
+                self.graphs[idx] = child
+                self.color_number[idx] = len(set(child.colors))
+                added_number += 1
 
 
 def graph_generator(density, vertex_number, file_name):
@@ -191,25 +197,10 @@ def graph_generator(density, vertex_number, file_name):
     f.close()
 
 
-def genetic(graphs):
-    seed = random.randint(0,1)
-    if seed == 0:
-        cut_population(graphs)
-        while len(graphs) != 50:
-            parents = parent_selection1(graphs)
-            child = crossover(parents)
-            child.mutation()
-            if child != graphs[-1]:
-                graphs.append(child)
-    else:
-        cut_population(graphs)
-        while len(graphs) != 50:
-            parents = parent_selection2(graphs)
-            child = crossover(parents)
-            child.mutation2()
-            if child != graphs[-1]:
-                graphs.append(child)
-    return graphs
-
-
+graphs = Population(20, "queen6")
+print(graphs.color_number[0])
+for i in range(1000):
+    graphs.genetic()
+    print(graphs.color_number)
+print(min(graphs.color_number))
 
