@@ -54,6 +54,12 @@ class Graph:
         self.matrix[vertex1-1][vertex2-1] = 1
         self.matrix[vertex2-1][vertex1-1] = 1
 
+    def random_coloring(self):
+        for i in range(len(self.matrix)):
+            self.color(i, random.randint(1, len(self.matrix)+1))
+        self.mutation1()
+        return len(set(self.colors))
+
     def greedy_coloring(self, starting_vertex):
         for vertex in range(starting_vertex, starting_vertex + len(self.matrix)):
             colors = []
@@ -98,6 +104,8 @@ class Population:
         self.graphs = []
         self.graph_number = graph_number
         self.color_number = [0 for _ in range(self.graph_number)]
+        self.similarity = [0 for _ in range(self.graph_number)]
+        self.color_max = [0 for _ in range(self.graph_number)]
         f = open(file, "r")  # opening the file
         lines = f.readlines()  # storing content in lines variable
         vertex_number = int(lines[0])
@@ -107,10 +115,34 @@ class Population:
                 vertices = i.split()
                 g.add_edge(int(vertices[0]), int(vertices[1]))
             self.graphs.append(g)
-        for i in range(len(self.graphs)):
-            c = self.graphs[i].greedy_coloring(i)
+        for i in range(len(self.graphs)-1):
+            c = self.graphs[i].random_coloring()
             self.color_number[i] = c
+        c = self.graphs[-1].greedy_coloring(0)
+        self.color_number[-1] = c
         f.close()
+
+    def similarity_rate(self):
+        for g in range(self.graph_number - 1):
+            biggest_similarity = 0
+            for g2 in range(g + 1, self.graph_number):
+                sim = 0
+                for c in range(len(self.graphs[0].colors)):
+                    if self.graphs[g].colors[c] == self.graphs[g2].colors[c]:
+                        sim += 1
+                if biggest_similarity < sim:
+                    biggest_similarity = sim
+            self.similarity[g] = biggest_similarity
+        return self.similarity.index(max(self.similarity))
+
+    def excluder(self):
+        self.similarity_rate()
+        max_indexes = [0 for _ in range(self.graph_number)]
+        max_similarity = max(self.similarity)
+        max_colors = max(self.color_number)
+        for i in range(self.graph_number):
+            max_indexes[i] = self.similarity[i] / max_similarity + (self.color_number[i] / max_colors)
+        return max_indexes.index(max(max_indexes))
 
     def parent_selection1(self):
         parents = []
@@ -169,7 +201,7 @@ class Population:
                     already_exist = True
 
             if already_exist is False:
-                idx = colors.index(max(colors))
+                idx = self.excluder()
                 colors[idx] = 0
                 self.graphs[idx] = child
                 self.color_number[idx] = len(set(child.colors))
@@ -199,9 +231,9 @@ def graph_generator(density, vertex_number, file_name):
     f.close()
 
 
-graphs = Population(50, "queen6")
+graphs = Population(30, "queen6")
 print(graphs.color_number[0])
-for i in range(1000):
+for i in range(500):
     graphs.genetic()
     print(graphs.color_number)
     print(min(graphs.color_number))
