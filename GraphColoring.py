@@ -101,11 +101,10 @@ class Graph:
 
 class Population:
     def __init__(self, graph_number, file):
-        self.graphs = []
+        self.graphs = {}
         self.graph_number = graph_number
-        self.color_number = [0 for _ in range(self.graph_number)]
-        self.similarity = [0 for _ in range(self.graph_number)]
-        self.color_max = [0 for _ in range(self.graph_number)]
+        self.similarity = {}
+        self.graphs_rate = {}
         f = open(file, "r")  # opening the file
         lines = f.readlines()  # storing content in lines variable
         vertex_number = int(lines[0])
@@ -114,63 +113,74 @@ class Population:
             for i in lines[1:]:
                 vertices = i.split()
                 g.add_edge(int(vertices[0]), int(vertices[1]))
-            self.graphs.append(g)
-        for i in range(len(self.graphs)-1):
-            c = self.graphs[i].random_coloring()
-            self.color_number[i] = c
-        c = self.graphs[-1].greedy_coloring(0)
-        self.color_number[-1] = c
+            self.graphs[g] = 0
+        for graph in self.graphs:
+            c = graph.random_coloring()  # random coloring, we might try adding one greedy
+            self.graphs[graph] = c
         f.close()
 
+    """
+    similarity_rate
+    for each graph we assign the biggest similarity to another graph in population
+    similarity is the number of the same vertices (same colors) in two graphs
+    """
     def similarity_rate(self):
-        for g in range(self.graph_number - 1):
+        keys = [g for g in self.graphs]
+        vertex_number = len(keys[0].matrix)
+        for g in range(len(keys)):
             biggest_similarity = 0
-            for g2 in range(g + 1, self.graph_number):
+            for g2 in range(g + 1, len(keys)):
                 sim = 0
-                for c in range(len(self.graphs[0].colors)):
-                    if self.graphs[g].colors[c] == self.graphs[g2].colors[c]:
+                for c in range(vertex_number):
+                    if keys[g] == keys[g2]:
+                        break
+                    if keys[g].colors[c] == keys[g2].colors[c]:
                         sim += 1
                 if biggest_similarity < sim:
                     biggest_similarity = sim
-            self.similarity[g] = biggest_similarity
-        return self.similarity.index(max(self.similarity))
+            self.similarity[keys[g]] = biggest_similarity
+        values = [value for value in self.similarity.values()]
+        return max(values)
 
+    """
+    excluder
+    updates graph_rate, for each graph we assign the normalized scores for similarity and color number
+    we want to minimize both
+    possible to change weights of variables (similarity and number of colors)
+    """
     def excluder(self):
-        self.similarity_rate()
-        max_indexes = [0 for _ in range(self.graph_number)]
-        max_similarity = max(self.similarity)
-        max_colors = max(self.color_number)
-        for i in range(self.graph_number):
-            max_indexes[i] = self.similarity[i] / max_similarity + (self.color_number[i] / max_colors)
-        return max_indexes.index(max(max_indexes))
+        colors = [value for value in self.graphs.values()]
+        max_similarity = self.similarity_rate()
+        max_colors = max(colors)
+        for i in self.graphs:
+            self.graphs_rate[i] = (self.similarity[i] / max_similarity)*3 + (self.graphs[i] / max_colors)  # weights
+        return max(self.graphs_rate, key=self.graphs_rate.get)
 
     def parent_selection1(self):
         parents = []
         for _ in range(2):
-            a = random.randint(1, self.graph_number - 1)
-            b = random.randint(1, self.graph_number - 1)
+            a = random.choice(list(self.graphs))
+            b = random.choice(list(self.graphs))
             while a == b:
-                b = random.randint(1, self.graph_number - 1)
-            if self.color_number[a] > self.color_number[b]:
-                parent = self.graphs[b]
+                b = random.choice(list(self.graphs))
+            if self.graphs[a] > self.graphs[b]:
+                parents.append(b)
             else:
-                parent = self.graphs[a]
-            parents.append(parent)
+                parents.append(a)
         return parents
 
     def parent_selection2(self):
-        i = 0
-        j = 0
-        parent1, parent2 = self.color_number[0], self.color_number[0]
-        for n in range(1, self.graph_number):
-            color = self.color_number[n]
+        p1, p2 = 0, 0
+        parent1, parent2 = 1000, 1000
+        for n in self.graphs:
+            color = self.graphs[n]
             if color <= parent1:
                 parent1, parent2 = color, parent1
-                i, j = n, i
+                p1, p2 = n, p1
             elif color < parent2:
                 parent2 = color
-                j = n
-        return self.graphs[i], self.graphs[j]
+                p2 = n
+        return [p1, p2]
 
     def crossover(self, parents):
         parent1 = parents[0]
@@ -180,31 +190,42 @@ class Population:
         child.colors[a:] = parent2.colors[a:]
         return child
 
+    """
+    genetic
+    we choose the graph with the biggest graph_rate, to replace it with a child
+    as we count the graph_rates at the beginning, if for chosen graph we change it to 0, it will not be selected
+    """
     def genetic(self):
         added_number = 0
-        colors = copy.deepcopy(self.color_number)
-        while added_number < self.graph_number//2:
+        g = self.excluder()
+        x = min(self.graphs_rate, key=self.graphs_rate.get)
+        self.graphs_rate[x] = 0
+        while added_number < self.graph_number//3:  # what part of population we want to update in this generation
             seed = random.randint(0, 1)
+            """
+            we can choose different combinations of parent selections and mutations
+            or change the probability of choosing each combination
+            """
             if seed == 0:
                 parents = self.parent_selection1()
                 child = self.crossover(parents)
-                child.mutation2()
+                child.mutation1()
 
             else:
                 parents = self.parent_selection2()
                 child = self.crossover(parents)
-                child.mutation1()
+                child.mutation2()
 
             already_exist = False
-            for i in range(self.graph_number):
-                if child == self.graphs[i]:
+            for i in self.graphs:
+                if i.colors == child.colors:
                     already_exist = True
 
             if already_exist is False:
-                idx = self.excluder()
-                colors[idx] = 0
-                self.graphs[idx] = child
-                self.color_number[idx] = len(set(child.colors))
+                self.graphs_rate[g] = 0
+                del self.graphs[g]
+                g = max(self.graphs_rate, key=self.graphs_rate.get)
+                self.graphs[child] = len(set(child.colors))
                 added_number += 1
 
 
@@ -231,11 +252,25 @@ def graph_generator(density, vertex_number, file_name):
     f.close()
 
 
-graphs = Population(30, "queen6")
-print(graphs.color_number[0])
-for i in range(500):
+# color number for greedy approach
+file_name = "queen6"
+f = open(file_name, "r")
+lines = f.readlines()
+vertex_number = int(lines[0])
+g = Graph(vertex_number)
+for i in lines[1:]:
+     vertices = i.split()
+     g.add_edge(int(vertices[0]), int(vertices[1]))
+print("greedy algorithm: " + str(g.greedy_coloring(0)))
+
+graphs = Population(10, file_name)  # choosing the size of population
+for i in range(1000):  # number of generations
     graphs.genetic()
-    print(graphs.color_number)
-    print(min(graphs.color_number))
-print(min(graphs.color_number))
+    # with this we can see the differences in colors between generations
+    #for i in graphs.graphs:
+    #    print(i.colors)
+    #print(min(graphs.graphs.values()))
+    if i%100 == 0:
+        print("Progress: " + str(int(i/1000*100)) + "%")
+print("genetic algorithm: " + str(min(graphs.graphs.values())))
 
