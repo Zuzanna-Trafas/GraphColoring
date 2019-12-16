@@ -1,5 +1,8 @@
 import random
 import copy
+import networkx as nx
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Graph:
@@ -97,6 +100,11 @@ class Graph:
             if self.matrix[c][c] > maximum:
                 maximum = self.matrix[c][c]
         return maximum
+
+    def visualization(self):
+        a = nx.from_numpy_matrix(np.matrix(self.matrix))
+        nx.draw(a, with_labels=False, node_color=self.colors, cmap=plt.cm.tab20)
+        plt.show()
 
 
 class Population:
