@@ -103,7 +103,8 @@ class Graph:
 
     def visualization(self):
         a = nx.from_numpy_matrix(np.matrix(self.matrix))
-        nx.draw(a, with_labels=False, node_color=self.colors, cmap=plt.cm.tab20)
+        pos = nx.circular_layout(a)
+        nx.draw(a, pos=pos, with_labels=False, node_color=self.colors, cmap=plt.cm.gist_rainbow)
         plt.show()
 
 
@@ -125,6 +126,8 @@ class Population:
         for graph in self.graphs:
             c = graph.random_coloring()  # random coloring, we might try adding one greedy
             self.graphs[graph] = c
+        #c = graph.greedy_coloring(0)
+        #self.graphs[graph] = c
         f.close()
 
     """
@@ -204,25 +207,29 @@ class Population:
     as we count the graph_rates at the beginning, if for chosen graph we change it to 0, it will not be selected
     """
     def genetic(self):
+        self.excluder()
         added_number = 0
-        g = self.excluder()
-        x = min(self.graphs_rate, key=self.graphs_rate.get)
-        self.graphs_rate[x] = 0
+        x = min(self.graphs, key=self.graphs.get)
+        del self.graphs_rate[x]
         while added_number < self.graph_number//3:  # what part of population we want to update in this generation
-            seed = random.randint(0, 1)
+            seed = random.randint(0, 50)
             """
             we can choose different combinations of parent selections and mutations
             or change the probability of choosing each combination
             """
-            if seed == 0:
+            if seed < 25:
                 parents = self.parent_selection1()
                 child = self.crossover(parents)
                 child.mutation1()
 
-            else:
+            elif 25 <= seed < 50:
                 parents = self.parent_selection2()
                 child = self.crossover(parents)
                 child.mutation2()
+
+            else:
+                child = copy.deepcopy(random.choice(list(self.graphs)))
+                child.random_coloring()
 
             already_exist = False
             for i in self.graphs:
@@ -230,9 +237,9 @@ class Population:
                     already_exist = True
 
             if already_exist is False:
-                self.graphs_rate[g] = 0
-                del self.graphs[g]
                 g = max(self.graphs_rate, key=self.graphs_rate.get)
+                del self.graphs[g]
+                del self.graphs_rate[g]
                 self.graphs[child] = len(set(child.colors))
                 added_number += 1
 
@@ -266,19 +273,25 @@ f = open(file_name, "r")
 lines = f.readlines()
 vertex_number = int(lines[0])
 g = Graph(vertex_number)
+g2 = Graph(vertex_number)
 for i in lines[1:]:
      vertices = i.split()
      g.add_edge(int(vertices[0]), int(vertices[1]))
+     g2.add_edge(int(vertices[0]), int(vertices[1]))
 print("greedy algorithm: " + str(g.greedy_coloring(0)))
-
+print("optimized greedy algorithm: " + str(g2.optimized_greedy_coloring()))
 graphs = Population(10, file_name)  # choosing the size of population
-for i in range(1000):  # number of generations
+generation_number = 2000
+for i in range(generation_number):  # number of generations
     graphs.genetic()
     # with this we can see the differences in colors between generations
-    #for i in graphs.graphs:
-    #    print(i.colors)
+    #for j in graphs.graphs:
+    #    print(j.colors)
     #print(min(graphs.graphs.values()))
-    if i%100 == 0:
-        print("Progress: " + str(int(i/1000*100)) + "%")
+    if i % (generation_number//10) == 0:
+        print("Progress: " + str(int(i/generation_number*100)) + "%")
 print("genetic algorithm: " + str(min(graphs.graphs.values())))
+
+
+
 
