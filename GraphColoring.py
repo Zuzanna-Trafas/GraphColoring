@@ -126,8 +126,8 @@ class Population:
         for graph in self.graphs:
             c = graph.random_coloring()  # random coloring, we might try adding one greedy
             self.graphs[graph] = c
-        #c = graph.greedy_coloring(0)
-        #self.graphs[graph] = c
+        c = graph.greedy_coloring(0)
+        self.graphs[graph] = c
         f.close()
 
     """
@@ -164,7 +164,7 @@ class Population:
         max_similarity = self.similarity_rate()
         max_colors = max(colors)
         for i in self.graphs:
-            self.graphs_rate[i] = (self.similarity[i] / max_similarity)*3 + (self.graphs[i] / max_colors)  # weights
+            self.graphs_rate[i] = (self.similarity[i] / max_similarity)*5 + (self.graphs[i] / max_colors)  # weights
         return max(self.graphs_rate, key=self.graphs_rate.get)
 
     def parent_selection1(self):
@@ -207,29 +207,38 @@ class Population:
     as we count the graph_rates at the beginning, if for chosen graph we change it to 0, it will not be selected
     """
     def genetic(self):
+        new_generation = {}
         self.excluder()
-        added_number = 0
         x = min(self.graphs, key=self.graphs.get)
-        del self.graphs_rate[x]
-        while added_number < self.graph_number//3:  # what part of population we want to update in this generation
+        new_generation[x] = len(set(x.colors))
+        added_number = 0
+        while added_number < self.graph_number//1.1:  # what part of population we want to update in this generation
             seed = random.randint(0, 50)
             """
             we can choose different combinations of parent selections and mutations
             or change the probability of choosing each combination
             """
-            if seed < 25:
-                parents = self.parent_selection1()
-                child = self.crossover(parents)
-                child.mutation1()
-
-            elif 25 <= seed < 50:
+            if seed < 10:
                 parents = self.parent_selection2()
                 child = self.crossover(parents)
-                child.mutation2()
+                #if 0 <= seed < 4:
+                child.mutation1()
 
-            else:
+            elif 10 <= seed < 40 :
+                parents = self.parent_selection1()
+                child = self.crossover(parents)
+                #if 25<=seed<40:
+                child.mutation2()
+            elif 40<=seed<50:
                 child = copy.deepcopy(random.choice(list(self.graphs)))
-                child.random_coloring()
+                seed = random.randint(0, len(child.matrix)-1)
+                child.greedy_coloring(seed)
+            else:
+                parent1 = copy.deepcopy(random.choice(list(self.graphs)))
+                parent1.random_coloring()
+                parents = self.parent_selection1()
+                parents[0] = parent1
+                child = self.crossover(parents)
 
             already_exist = False
             for i in self.graphs:
@@ -237,11 +246,14 @@ class Population:
                     already_exist = True
 
             if already_exist is False:
-                g = max(self.graphs_rate, key=self.graphs_rate.get)
-                del self.graphs[g]
-                del self.graphs_rate[g]
-                self.graphs[child] = len(set(child.colors))
+                new_generation[child] = len(set(child.colors))
                 added_number += 1
+
+        while added_number < self.graph_number:
+            g = min(self.graphs_rate, key=self.graphs_rate.get)
+            new_generation[g] = len(set(g.colors))
+            added_number += 1
+        self.graphs = new_generation
 
 
 def graph_generator(density, vertex_number, file_name):
@@ -267,8 +279,12 @@ def graph_generator(density, vertex_number, file_name):
     f.close()
 
 
+
+
+
+"""
 # color number for greedy approach
-file_name = "queen6"
+file_name = "le450_5a.txt"
 f = open(file_name, "r")
 lines = f.readlines()
 vertex_number = int(lines[0])
@@ -280,18 +296,15 @@ for i in lines[1:]:
      g2.add_edge(int(vertices[0]), int(vertices[1]))
 print("greedy algorithm: " + str(g.greedy_coloring(0)))
 print("optimized greedy algorithm: " + str(g2.optimized_greedy_coloring()))
-graphs = Population(10, file_name)  # choosing the size of population
-generation_number = 2000
+graphs = Population(50, file_name)  # choosing the size of population
+generation_number = 200
 for i in range(generation_number):  # number of generations
     graphs.genetic()
     # with this we can see the differences in colors between generations
-    #for j in graphs.graphs:
-    #    print(j.colors)
-    #print(min(graphs.graphs.values()))
+    for j in graphs.graphs:
+        print(j.colors)
+    print(min(graphs.graphs.values()))
     if i % (generation_number//10) == 0:
         print("Progress: " + str(int(i/generation_number*100)) + "%")
 print("genetic algorithm: " + str(min(graphs.graphs.values())))
-
-
-
-
+"""
