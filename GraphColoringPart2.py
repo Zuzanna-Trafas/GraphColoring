@@ -56,11 +56,27 @@ class Graph:
             self.color(vertex, color)
         return max(self.colors)
 
-    def visualization(self):
+    def visualization(self, number):
         a = nx.from_numpy_matrix(np.matrix(self.matrix))
         pos = nx.circular_layout(a)
-        nx.draw(a, pos=pos, with_labels=False, node_color=self.colors, cmap=plt.cm.gist_rainbow)
-        plt.show()
+        colors = []
+        for i in self.colors:
+            if i == 1:
+                colors.append("blue")
+            if i == 2:
+                colors.append("green")
+            if i == 3:
+                colors.append("red")
+            if i == 4:
+                colors.append("yellow")
+            if i == 5:
+                colors.append("orange")
+            if i == 6:
+                colors.append("pink")
+
+        nx.draw(a, pos=pos, node_color=colors, with_labels=True)
+        name = "Figure" + str(number)
+        plt.savefig(name)
 
     def mutation(self):
         for vertex in range(len(self.matrix)):
@@ -72,6 +88,7 @@ class Graph:
                 if i not in adjacent_colors:
                     self.color(vertex, i)
                     break
+
         return self.colors
 
     def random_coloring(self):
@@ -103,12 +120,12 @@ class Population:
         for i in lines[1:]:
             vertices = i.split()
             self.graph.add_edge(int(vertices[0]), int(vertices[1]))
-        for _ in range(graph_number - 1):
+        for _ in range(graph_number):
             self.graph.random_coloring()
             self.colors.append(copy.deepcopy(self.graph.colors))
         # one greedy graph
-        self.graph.greedy_coloring(0)
-        self.colors.append(copy.deepcopy(self.graph.colors))
+        #self.graph.greedy_coloring(0)
+        #self.colors.append(copy.deepcopy(self.graph.colors))
         f.close()
 
     def similarity_rate(self):  # counting biggest similarity to any other graph in population
@@ -130,10 +147,8 @@ class Population:
         max_similarity = self.similarity_rate()
         max_color_number = max([len(set(i)) for i in self.colors])
         for g in range(self.graph_number):
-            self.graph.colors = self.colors[g]
-            errors = self.graph.find_errors()
             self.rate[g] = (self.similarity[g] / max_similarity) * 5 + \
-                           ((len(set(self.colors[g])) + errors) / max_color_number)
+                           (len(set(self.colors[g])) / max_color_number)
 
     def parent_selection1(self):  # more random one
         parents = []
@@ -163,15 +178,15 @@ class Population:
         added_number = 0
         while added_number < self.graph_number * part_of_population:  # what part of population we want to update in this generation
             seed = random.randint(0, 100)
-            if seed <= 10:  # generating greedy child
+            if seed <= 20:  # generating greedy child
                 g = random.randint(0, len(self.colors[0]))
                 child = self.graph.greedy_coloring(g)
             else:
-                if seed <= 60:  # generating a bit random-crossover child
+                if seed <= 70:  # generating a bit random-crossover child
                     parents = self.parent_selection2()
                 else:  # generating optimal child from population
                     parents = self.parent_selection1()
-                    if seed >= 80:
+                    if seed >= 90:
                         parents[0] = self.graph.random_coloring()
                 child = crossover(parents)
                 if mutation:
@@ -185,7 +200,15 @@ class Population:
             if already_exist is False:
                 new_generation.append(child)
                 added_number += 1
-
+        minimum_color = 500
+        best_coloring = []
+        for j in self.colors:
+            x = len(set(j))
+            if x < minimum_color:
+                minimum_color = x
+                best_coloring = j
+        new_generation.append(best_coloring)
+        added_number += 1
         while added_number < self.graph_number:
             selected = self.colors[self.rate.index(min(self.rate))]
             new_generation.append(selected)
@@ -203,8 +226,15 @@ class Population:
                 self.genetic(part_of_population, mutation=True)
             else:
                 self.genetic(part_of_population)
-            if iter % (generation_number // 10) == 0:
+            if iter % (generation_number // 100) == 0:
                 print("Progress: " + str(int(iter / generation_number * 100)) + "%")
+                # self.mutate_all()
+                minimum_color = 500
+                for j in self.colors:
+                    x = len(set(j))
+                    if x < minimum_color:
+                        minimum_color = x
+                print(minimum_color)
         self.mutate_all()
         minimum_color = 500
         for j in self.colors:
@@ -228,6 +258,7 @@ find_minimum:
     
 """
 
+
 # color number for greedy approaches
 file_name = "miles250.txt"
 f = open(file_name, "r")
@@ -239,12 +270,13 @@ for i in lines[1:]:
     vertices = i.split()
     g.add_edge(int(vertices[0]), int(vertices[1]))
     g2.add_edge(int(vertices[0]), int(vertices[1]))
+
 print("greedy algorithm: " + str(max(g.greedy_coloring(0))))
 print("optimized greedy algorithm: " + str(g2.optimized_greedy_coloring()))
 
 
 # 3 times genetic algorithm
 for _ in range(3):
-    graphs = Population(20, file_name)  # choosing the size of population
-    minimum = graphs.find_minimum(100, 0.8, 3)  # choosing parameters
+    graphs = Population(50, file_name)  # choosing the size of population
+    minimum = graphs.find_minimum(100, 0.8, 1)  # choosing parameters
     print("genetic algorithm: " + str(minimum))

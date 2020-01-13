@@ -280,11 +280,8 @@ def graph_generator(density, vertex_number, file_name):
 
 
 
-
-
-"""
 # color number for greedy approach
-file_name = "le450_5a.txt"
+file_name = "miles250.txt"
 f = open(file_name, "r")
 lines = f.readlines()
 vertex_number = int(lines[0])
@@ -307,4 +304,3 @@ for i in range(generation_number):  # number of generations
     if i % (generation_number//10) == 0:
         print("Progress: " + str(int(i/generation_number*100)) + "%")
 print("genetic algorithm: " + str(min(graphs.graphs.values())))
-"""

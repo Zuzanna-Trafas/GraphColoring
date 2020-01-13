@@ -1,3 +1,5 @@
+import random
+
 def graph_generator(density, vertex_number, file_name):
     edges = []
     edge_number = vertex_number
