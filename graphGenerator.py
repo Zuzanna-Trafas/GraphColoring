@@ -21,3 +21,23 @@ def graph_generator(density, vertex_number, file_name):
         edge_number += 1
         graph_density = (2 * edge_number) / (vertex_number * (vertex_number - 1))
     f.close()
+
+
+graph_generator(0.3, 350, "g3403")
+print("XD1")
+graph_generator(0.3, 650, "g6503")
+print("XD2")
+graph_generator(0.5, 200, "g2005")
+print("XD3")
+graph_generator(0.5, 350, "g3505")
+print("XD4")
+graph_generator(0.5, 500, "g5005")
+print("XD5")
+graph_generator(0.5, 650, "g6505")
+print("XD6")
+graph_generator(0.5, 800, "g8005")
+print("XD7")
+graph_generator(0.7, 350, "g3507")
+print("XD8")
+graph_generator(0.7, 650, "g6507")
+print("XD9")

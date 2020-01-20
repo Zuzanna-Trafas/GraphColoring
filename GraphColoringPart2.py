@@ -228,7 +228,7 @@ class Population:
                 self.genetic(part_of_population)
             if iter % (generation_number // 100) == 0:
                 print("Progress: " + str(int(iter / generation_number * 100)) + "%")
-                # self.mutate_all()
+                #self.mutate_all()
                 minimum_color = 500
                 for j in self.colors:
                     x = len(set(j))
@@ -260,7 +260,7 @@ find_minimum:
 
 
 # color number for greedy approaches
-file_name = "miles250.txt"
+file_name = "g6507"
 f = open(file_name, "r")
 lines = f.readlines()
 vertex_number = int(lines[0])
@@ -277,6 +277,6 @@ print("optimized greedy algorithm: " + str(g2.optimized_greedy_coloring()))
 
 # 3 times genetic algorithm
 for _ in range(3):
-    graphs = Population(50, file_name)  # choosing the size of population
+    graphs = Population(30, file_name)  # choosing the size of population
     minimum = graphs.find_minimum(100, 0.8, 1)  # choosing parameters
     print("genetic algorithm: " + str(minimum))
